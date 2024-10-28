@@ -1,0 +1,107 @@
+:root {
+    --footer-height: 20px;
+}
+
+.title {
+    text-align: center;
+    font-size: x-large;
+}
+
+.light-border {
+    border: 1px solid hsl(240, 20%, 20%);
+    padding: 2px;
+    margin: 1px;
+}
+
+div#grid {
+    background-color: hsl(240, 20%, 10%);
+    padding: 10px;
+    overflow-x: scroll;
+}
+
+button {
+    border-left: 2px solid hsl(240, 20%, 70%);
+    border-top: 2px solid hsl(240, 20%, 70%);
+
+    border-right: 2px solid hsl(240, 20%, 25%);
+    border-bottom: 2px solid hsl(240, 20%, 25%);
+
+    width: 100%;
+    margin: 2px;
+}
+
+button#refresh-button {
+    color: black;
+    background-color: hsl(93, 100%, 75%);
+}
+
+button#clear-button {
+    color: black;
+    background-color: hsl(5, 100%, 75%);
+}
+
+input {
+    outline: none;
+    border:1px solid hsl(240, 20%, 5%);
+    
+    color: aliceblue;
+    background-color: hsl(240, 20%, 15%);
+    
+    padding: 0px;
+
+    height: 18px;
+    width: 68px;
+    
+    line-height: 0px;
+    
+    text-align: center;
+}
+
+input#input-colors {
+    height: 1em;
+    width: 1em;
+}
+
+.settings {
+    background-color: hsl(240, 30%, 20%);
+    color: aliceblue;
+}
+
+footer {
+    position: fixed;
+    right: 0px;
+    left: 0px;
+    bottom: 0px;
+    height: var(--footer-height);
+    border-top: 3px dotted hsl(240, 20%, 30%);
+
+    text-align: right;
+    padding-right: 0.5em;
+    background-color: black;
+}
+
+a:link {
+    color: hsl(240, 20%, 80%)
+}
+
+a:visited {
+    color: hsl(240, 20%, 65%)
+}
+
+a:hover {
+    color: white;
+}
+
+body {
+    background-color: hsl(240, 50%, 5%);
+    color: aliceblue;
+
+    overflow-x: hidden;
+    min-height: 100%;
+
+    padding-bottom: var(--footer-height);
+}
+
+* {
+    font-family: monospace;
+}

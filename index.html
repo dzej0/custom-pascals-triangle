@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>test</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.png">
+</head>
+<body>
+    <div class="title">Custom Pascal's Triangle</div>
+    <noscript>
+        <p style="color: crimson">
+            This site requires JavaScript to be enabled to run!
+        </p>
+    </noscript>
+    
+    <div class="light-border">
+        <div style="display: flex; width: 100%;">
+            <div class="light-border" style="width: 18%;">
+                <b>Instructions</b><br>
+                <p>
+                    - Type in some numbers into the first row, then click <span style="color: hsl(93, 100%, 75%);">Generate</span> (or enter), and see what happens!<br>
+                    - Change the rule set using the rule set menu below<br>
+                    - Change settings in the menus to the right
+                </p>
+            </div>
+            <div class="light-border" style="width: 52%;">
+                <b>General settings</b>
+                <br>
+                Column amount: <input class="settings" id="input-columns" type="number" value="25">
+                Row amount: <input class="settings" id="input-rows" type="number" value="30"><br>
+                
+            </div>
+            <div class="light-border" style="width: 30%;">
+                <b>Color settings</b>
+                <br>
+                <input id="input-colors" type="checkbox">Colored cells (works best with positive values)<br>
+                <b>Hue range (recommended 0-270)</b><br>
+                min: <input class="settings" id="input-hue-range-min" type="number" min="0" max="720" value="0"><br>
+                max: <input class="settings" id="input-hue-range-max" type="number" min="0" max="720" value="270">
+            </div>
+        </div>
+        <div style="display: flex;">
+            <div class="light-border" style="display: flex;">
+                <p style="width: 50%; min-width: fit-content;">
+                    Choose rule set:<br>
+                    <select class="settings" id="ruleset">
+                        <option value="add">Add</option>
+                        <option value="multiply">Multiply</option>
+                        <option value="multiply2">Multiply, then multiply by -1 Lorem sigmi ohio</option>
+                    </select>
+                </p>
+                <div style="margin: 10px; min-width: fit-content">
+                    <button id="refresh-button">Refresh [Enter]</button><br>
+                    <button id="clear-button">Clear Numbers [-]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="grid">
+    </div>
+    <footer>
+        <a class="new-tab-link" href="https://github.com/dzej0" target="_blank">dzej0 @ GitHub</a>
+    </footer>
+    <script src="main.js"></script>
+</body>
+</html>
