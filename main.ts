@@ -1,21 +1,10 @@
-/**
- * todolist
- * 
- * zmieniajace wielkosc komorki aby dopasowac sie do liczby w srodku 
- * 
- * polaczyc przyciski refresh z update grid size V
- * przyciski zeby uzytkownik mogl ustawic dowolna liczbe kolumn i wierszy V 
- * rulesety V
- * kolory V
- */
-
 declare interface Math {
     log10(x: number): number;
 }
 
-let grid: HTMLElement | null = document.getElementById("grid")
-let refreshButton: HTMLElement | null = document.getElementById("refresh-button")
-let clearValuesButton: HTMLElement | null = document.getElementById("clear-button")
+let grid: HTMLDivElement | null = document.querySelector("div#grid")
+let refreshButton: HTMLButtonElement | null = document.querySelector("button#refresh-button")
+let clearValuesButton: HTMLButtonElement | null = document.querySelector("button#clear-button")
 
 let ruleset: HTMLSelectElement | null = document.querySelector("select#ruleset")
 
@@ -257,8 +246,20 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("keydown", (key) => {
     if (key.key == "Escape") {
         clearValuesButton?.click()
+        clearValuesButton!.style.backgroundColor = "hsl(5, 100%, 35%)"
     }
     if (key.key == "Enter") {
         refreshButton?.click()
+        refreshButton!.style.backgroundColor = "hsl(93, 100%, 20%)"
+    }
+})
+
+// todo fix case when alt tabbing
+document.addEventListener("keyup", (key) => {
+    if (key.key == "Escape") {
+        clearValuesButton!.style.backgroundColor = "hsl(5, 100%, 75%)"
+    }
+    if (key.key == "Enter") {
+        refreshButton!.style.backgroundColor = "hsl(93, 100%, 75%)"
     }
 })

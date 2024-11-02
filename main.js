@@ -1,16 +1,6 @@
-/**
- * todolist
- *
- * zmieniajace wielkosc komorki aby dopasowac sie do liczby w srodku
- *
- * polaczyc przyciski refresh z update grid size V
- * przyciski zeby uzytkownik mogl ustawic dowolna liczbe kolumn i wierszy V
- * rulesety V
- * kolory V
- */
-var grid = document.getElementById("grid");
-var refreshButton = document.getElementById("refresh-button");
-var clearValuesButton = document.getElementById("clear-button");
+var grid = document.querySelector("div#grid");
+var refreshButton = document.querySelector("button#refresh-button");
+var clearValuesButton = document.querySelector("button#clear-button");
 var ruleset = document.querySelector("select#ruleset");
 var columnInput = document.querySelector("input#input-columns");
 var rowInput = document.querySelector("input#input-rows");
@@ -220,8 +210,19 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener("keydown", function (key) {
     if (key.key == "Escape") {
         clearValuesButton === null || clearValuesButton === void 0 ? void 0 : clearValuesButton.click();
+        clearValuesButton.style.backgroundColor = "hsl(5, 100%, 35%)";
     }
     if (key.key == "Enter") {
         refreshButton === null || refreshButton === void 0 ? void 0 : refreshButton.click();
+        refreshButton.style.backgroundColor = "hsl(93, 100%, 20%)";
+    }
+});
+// todo fix case when alt tabbing
+document.addEventListener("keyup", function (key) {
+    if (key.key == "Escape") {
+        clearValuesButton.style.backgroundColor = "hsl(5, 100%, 75%)";
+    }
+    if (key.key == "Enter") {
+        refreshButton.style.backgroundColor = "hsl(93, 100%, 75%)";
     }
 });

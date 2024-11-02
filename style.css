@@ -35,9 +35,19 @@ button#refresh-button {
     background-color: hsl(93, 100%, 75%);
 }
 
+button#refresh-button:active {
+    color: aliceblue;
+    background-color: hsl(93, 100%, 20%);
+}
+
 button#clear-button {
     color: black;
     background-color: hsl(5, 100%, 75%);
+}
+
+button#clear-button:active {
+    color: aliceblue;
+    background-color: hsl(5, 100%, 35%);
 }
 
 input {
