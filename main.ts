@@ -2,83 +2,174 @@ declare interface Math {
     log10(x: number): number;
 }
 
-let grid: HTMLDivElement | null = document.querySelector("div#grid")
+let gridDisplay: HTMLDivElement | null = document.querySelector("div#grid")
 let refreshButton: HTMLButtonElement | null = document.querySelector("button#refresh-button")
 let clearValuesButton: HTMLButtonElement | null = document.querySelector("button#clear-button")
 
-let ruleset: HTMLSelectElement | null = document.querySelector("select#ruleset")
+let rulesetSelector: HTMLSelectElement | null = document.querySelector("select#ruleset")
 
 let columnInput: HTMLInputElement | null = document.querySelector("input#input-columns")
 let rowInput: HTMLInputElement | null = document.querySelector("input#input-rows")
 
 let colorsInput: HTMLInputElement | null = document.querySelector("input#input-colors")
 
-let hueMin: HTMLInputElement | null = document.querySelector("input#input-hue-range-min")
-let hueMax: HTMLInputElement | null = document.querySelector("input#input-hue-range-max")
+let hueMinInput: HTMLInputElement | null = document.querySelector("input#input-hue-range-min")
+let hueMaxInput: HTMLInputElement | null = document.querySelector("input#input-hue-range-max")
 
-let currentGridSize = {"col":0,"row":0}
+function getRulesetFunc() : Function {
+    switch (rulesetSelector?.value) {
+        case "add":
+            return (x: number,y: number) => x+y
+        case "multiply":
+            return (x: number,y: number) => x*y
+        case "multiply2":
+            return (x: number,y: number) => x*y*(-1)
+        default:
+            console.warn("Invalid ruleset")
+            return (x: number,y: number) => 0
+    }
+}
 
-//#region coordinates
+class Grid {
+    public static grid: number[][];
 
-function getCell(col: number, row: number) {
-    if (document.getElementById(`r${row}`) != null) {
-        let elements = document.getElementById(`r${row}`)?.querySelectorAll("input")
-        if (elements != null) {
-            for (let i = 0; i < elements?.length; i++) {
-                let col_ = elements[i].getAttribute("data-col")
-                if (col_ != null && parseInt(col_) == col) {
-                    return elements[i]
-                }
+    public static getRows() : number {
+        return this.grid.length
+    }
+
+    public static getColumns(oddRow : boolean) : number {
+        return this.grid[0].length - ((oddRow) ? 1 : 0)
+    }
+
+    public static getColumnsFromRowNumber(rowNumber : number) {
+        return this.getColumns((rowNumber%2 == 1) ? true : false)
+    }
+
+    public static outOfBounds(coords : Coordinates) : boolean {
+        return coords.row < 0 || coords.row > this.getRows() - 1 || coords.column < 0 || coords.column > this.getColumnsFromRowNumber(coords.row) - 1
+    }
+
+    public static getCellValue(coords : Coordinates) : number {
+        if (this.outOfBounds(coords)) {
+            return 0
+        }
+        return this.grid[coords.row][coords.column];
+    }
+
+    public static setCellValue(coords : Coordinates, value : number) : void {
+        if (this.outOfBounds(coords)) {
+            return
+        }
+        this.grid[coords.row][coords.column] = value;
+    }
+
+    /**
+     * fill the internal grid with zeros
+     * @param columns the number of cells in (2n)th rows (rows with an even index, like the topmost row).  
+     * In (2n-1)th rows (odd index), the number of cells is columns-1
+    */
+    public static generateGrid(columns : number, rows : number) : void {
+        this.grid = new Array<Array<number>>(rows);
+        
+        //console.log("rows amount: " + this.grid.length)
+        for (let r = 0; r < rows; r++) {
+            // create alternating row lengths
+            let rowLength: number
+            if (r%2 == 0) {
+                rowLength = columns
+            } else {
+                rowLength = columns - 1
+            }
+
+            this.grid[r] = new Array<number>(rowLength)
+            //console.log("columns in row " + r + ": " + this.grid[r].length)
+            for (let c = 0; c < rowLength; c++) {
+                this.setCellValue(new Coordinates(c, r), 0)
             }
         }
-        return null
-    } else {
-        return null
+    }
+
+    public static calculate(rulesetFunction : Function) : void {
+        console.log("Running calculation...")
+        for (let r = 1; r < this.getRows(); r++) {
+            for (let c = 0; c < this.getColumnsFromRowNumber(r); c++) {
+                let valL = this.getCellValue(new Coordinates(c,r).getCoordsUpLeft())
+                let valR = this.getCellValue(new Coordinates(c,r).getCoordsUpRight())
+                let res = rulesetFunction()(valL, valR)
+
+                this.setCellValue(new Coordinates(c, r), res)
+                //console.log(`set internal value at [${c}, ${r}] to: ` + res)
+            }
+        }
+    }
+
+    public static clearValues() : void {
+        for (let r = 0; r < this.getRows(); r++) {
+            for (let c = 0; c < this.getColumnsFromRowNumber(r); c++) {
+                this.grid[r][c] = 0
+            }
+        }
+    }
+
+    public static consoleLogGrid() : void {
+        let res : string = "Grid:\n"
+        this.grid.forEach((row_) => {
+            row_.forEach((col_) => {
+                res += col_.toString() + ", "
+            })
+            res += "\n"
+        })
+        console.log(res)
     }
 }
 
-function getCellUpLeft(col: number, row: number) : HTMLInputElement | null {
-    if (row%2) {
-        // odd row number (row with margin)
-        return getCell(col, row-1)
-    } else {
-        // even row number (row without margin)
-        return getCell(col-1, row-1)
+class Coordinates {
+    public column: number
+    public row: number
+
+    constructor(column_ : number, row_ : number) {
+        this.column = column_;
+        this.row = row_;
+    }
+
+    public getCoordsUpLeft() : Coordinates {
+        if (this.row%2) {
+            // odd row number (row with margin)
+            return new Coordinates(this.column, this.row - 1)
+        } else {
+            // even row number (row without margin)
+            return new Coordinates(this.column - 1, this.row - 1)
+        }
+    }
+
+    public getCoordsUpRight() : Coordinates {
+        if (this.row%2) {
+            // odd row number (row with margin)
+            return new Coordinates(this.column + 1, this.row - 1)
+        } else {
+            // even row number (row without margin)
+            return new Coordinates(this.column, this.row - 1)
+        }
+    }
+
+    public isEqual(c : Coordinates) {
+        return (this.column==c.column && this.row == c.row)
     }
 }
 
-function getCellUpRight(col: number, row: number) : HTMLInputElement | null {
-    if (row%2) {
-        // odd row number (row with margin)
-        return getCell(col+1, row-1)
-    } else {
-        // even row number (row without margin)
-        return getCell(col, row-1)
-    }
-}
-
-//#endregion
-
-//#region simple grid operations
-function generateGrid(col: number, row: number) {
+function updateDisplay() : void {
     removeGrid()
-    for (let r = 0; r < row; r++) {
+    console.log(`Generating display... size: ${Grid.getColumns(false)}x${Grid.getRows()}`)
+    for (let r = 0; r < Grid.getRows(); r++) {
         let rowDiv = document.createElement("div")
         if (r%2) {
             rowDiv.style.setProperty("margin-left", "35px")
         }
 
-        // create alternating row lengths
-        let rowLength: number
-        if (r%2 == 0) {
-            rowLength = col + 1
-        } else {
-            rowLength = col
-        }
-
-        for (let c = 0; c < rowLength; c++) { 
+        for (let c = 0; c < Grid.getColumnsFromRowNumber(r); c++) { 
             let cell = document.createElement("input")
             if (r==0) {
+                // special instructions for creating the first row
                 cell.disabled = false
                 cell.style.border = "1px solid aliceblue"
             } else {
@@ -90,47 +181,52 @@ function generateGrid(col: number, row: number) {
             cell.title = `column: ${c}, row: ${r}`
 
             cell.type = "text"
-            cell.value = "0"
+            cell.value = Grid.getCellValue(new Coordinates(c,r)).toString()
             rowDiv.appendChild(cell)
         }
         rowDiv.style.setProperty("white-space", "nowrap")
         rowDiv.id = `r${r}`
-        if (grid != null) grid.appendChild(rowDiv)
+        if (gridDisplay != null) gridDisplay.appendChild(rowDiv)
     }
 }
 
 function removeGrid() {
-    if (grid != null) grid.innerHTML = ""
+    console.log("Removing display...")
+    if (gridDisplay != null) gridDisplay.innerHTML = ""
 }
 
-function clearGrid() {
-    grid?.querySelectorAll("input").forEach((cell) => { 
-        cell.value = "0"
-        cell.style.backgroundColor = "hsl(240, 20%, 15%)"
+function readUserInputs() {
+    console.log("Reading user inputs...")
+    gridDisplay?.querySelectorAll("input").forEach((cell) => {
+        if (cell.dataset.row == "0") {
+            let col = cell.dataset.col
+            if (col != null) {
+                Grid.setCellValue(new Coordinates(parseInt(col), 0), parseFloat(cell.value))
+                //console.log(`x:${col} set to: ${parseFloat(cell.value)}`)
+            }
+        }
     })
 }
 
-//#endregion
-
-// map function to turn a wide range of values into a small range of colors
+// map function to turn a wide range of values into a small range of colors (lerp)
 function mapValue(value, minValue, maxValue, minOutput, maxOutput) {
     return minOutput + (maxOutput - minOutput) * (value - minValue) / (maxValue - minValue);
 }
 
-function recalculateColors() {
+function colorCells() {
     if (!colorsInput?.checked) {
-        grid?.querySelectorAll("input").forEach((cell) => {
+        gridDisplay?.querySelectorAll("input").forEach((cell) => {
             cell.style.backgroundColor = "hsl(240, 20%, 15%)"
         })
         return;
     }
 
-    let hueMin_ = hueMin?.value
-    let hueMax_ = hueMax?.value
+    let hueMin_ = hueMinInput?.value
+    let hueMax_ = hueMaxInput?.value
 
     let max = 0
     let min = 0
-    let cells = grid?.querySelectorAll("input")
+    let cells = gridDisplay?.querySelectorAll("input")
     if (cells == null) return;
     for (let i = 0; i < cells?.length; i++) {
         let cell = cells[i]
@@ -168,7 +264,7 @@ function recalculateColors() {
         hue = Math.round(hue)
 
         cell.style.backgroundColor = `hsl(${hue}, 80%, 30%)`
-        console.log(`setting hue value to: ${hue}`);
+        //console.log(`setting hue value to: ${hue}`);
 
         if (value == 0) {
             cell.style.backgroundColor = `hsl(${hue}, 80%, 20%)`
@@ -176,71 +272,17 @@ function recalculateColors() {
     }
 }
 
-function getRulesetFunc() {
-    switch (ruleset?.value) {
-        case "add":
-            return (x: number,y: number) => x+y
-        case "multiply":
-            return (x: number,y: number) => x*y
-        case "multiply2":
-            return (x: number,y: number) => x*y*(-1)
-        default:
-            console.warn("Invalid ruleset")
-            return (x: number,y: number) => 0
-    }
+function clearGrid() {
+    Grid.clearValues()
+    updateDisplay()
 }
-
-function recalculate() {
-    grid?.querySelectorAll("input").forEach((cell) => {
-        //console.log(`calculating cell at ${cell.getAttribute("data-row")}, ${cell.getAttribute("data-col")}`)
-        if (cell.hasAttribute("data-row") && cell.hasAttribute("data-col")) {
-            // get cells above on the left and right
-            let cellRow = cell.getAttribute("data-row")
-            let cellCol = cell.getAttribute("data-col")
-            let cellRowN, cellColN // cell coordinates as numbers
-            if (cellCol != null) {
-                cellColN = parseInt(cellCol)
-            }
-            if (cellRow != null) {
-                cellRowN = parseInt(cellRow)
-            }
-
-            let valL = getCellUpLeft(cellColN, cellRowN)?.value
-            let valR = getCellUpRight(cellColN, cellRowN)?.value
-
-            if (valL != null && valR != null) {
-                cell.value = getRulesetFunc()(parseFloat(valL), parseFloat(valR)).toString()
-            }
-        }
-    })
-}
-
-refreshButton?.addEventListener("click", () => {
-    if (currentGridSize.col != columnInput?.valueAsNumber || currentGridSize.row != rowInput?.valueAsNumber) {
-        if (columnInput?.valueAsNumber != undefined && rowInput?.valueAsNumber != undefined) {
-            generateGrid(columnInput?.valueAsNumber, rowInput?.valueAsNumber)
-        }
-    }
-    
-    recalculate()
-    recalculateColors()
-    
-    if (columnInput!=null && rowInput!=null) {
-        currentGridSize.col = columnInput.valueAsNumber
-        currentGridSize.row = rowInput.valueAsNumber
-    }
-})
 
 clearValuesButton?.addEventListener("click", () => {
     clearGrid()
 })
 
 colorsInput?.addEventListener("click", () => {
-    recalculateColors();
-})
-
-document.addEventListener("DOMContentLoaded", () => {
-    refreshButton?.click()
+    colorCells();
 })
 
 document.addEventListener("keydown", (key) => {
@@ -254,7 +296,6 @@ document.addEventListener("keydown", (key) => {
     }
 })
 
-// todo fix case when alt tabbing
 document.addEventListener("keyup", (key) => {
     if (key.key == "Escape") {
         clearValuesButton!.style.backgroundColor = "hsl(5, 100%, 75%)"
@@ -262,4 +303,59 @@ document.addEventListener("keyup", (key) => {
     if (key.key == "Enter") {
         refreshButton!.style.backgroundColor = "hsl(93, 100%, 75%)"
     }
+})
+
+
+function getUserInput_GridSize() : Coordinates {
+    let columns = columnInput?.valueAsNumber
+    let rows = rowInput?.valueAsNumber
+
+    if (columns != null && rows != null) {
+        return new Coordinates(columns, rows)
+    } else {
+        // this will never be returned, unless the grid size input fields dont exist for some reason
+        return new Coordinates(-1,-1)
+    }
+}
+
+let oldGridSize : Coordinates;
+
+/**
+ * makes a new internal grid and updates the display
+ */
+function generateNewGrid() : void {
+    let size = getUserInput_GridSize()
+    oldGridSize = size
+    console.log(`generating a ${size.column}x${size.row} grid`)
+    Grid.generateGrid(size.column, size.row)
+    console.log(`grid has ${Grid.getRows()} rows`)
+    updateDisplay()
+}
+
+function initGrid() {
+    generateNewGrid()
+}
+
+function refresh() {
+    // if columns/rows amount changed, generate a new empty grid
+    if (!(oldGridSize.isEqual(getUserInput_GridSize()))) {
+        console.log(`grid size changed, from ${oldGridSize.column}x${oldGridSize.row} 
+            to ${getUserInput_GridSize().column}x${getUserInput_GridSize().row}`)
+        initGrid()
+        console.log(`generated a grid, size ${Grid.getColumns(false)}x${Grid.getRows()}`)
+    }
+
+    readUserInputs()
+    Grid.calculate(getRulesetFunc)
+    console.log("finished calculating")
+    updateDisplay()
+    colorCells()
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    initGrid()
+})
+
+refreshButton?.addEventListener("click", () => {
+    refresh()
 })

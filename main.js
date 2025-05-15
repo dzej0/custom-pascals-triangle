@@ -1,72 +1,149 @@
-var grid = document.querySelector("div#grid");
+var gridDisplay = document.querySelector("div#grid");
 var refreshButton = document.querySelector("button#refresh-button");
 var clearValuesButton = document.querySelector("button#clear-button");
-var ruleset = document.querySelector("select#ruleset");
+var rulesetSelector = document.querySelector("select#ruleset");
 var columnInput = document.querySelector("input#input-columns");
 var rowInput = document.querySelector("input#input-rows");
 var colorsInput = document.querySelector("input#input-colors");
-var hueMin = document.querySelector("input#input-hue-range-min");
-var hueMax = document.querySelector("input#input-hue-range-max");
-var currentGridSize = { "col": 0, "row": 0 };
-//#region coordinates
-function getCell(col, row) {
-    var _a;
-    if (document.getElementById("r".concat(row)) != null) {
-        var elements = (_a = document.getElementById("r".concat(row))) === null || _a === void 0 ? void 0 : _a.querySelectorAll("input");
-        if (elements != null) {
-            for (var i = 0; i < (elements === null || elements === void 0 ? void 0 : elements.length); i++) {
-                var col_ = elements[i].getAttribute("data-col");
-                if (col_ != null && parseInt(col_) == col) {
-                    return elements[i];
-                }
+var hueMinInput = document.querySelector("input#input-hue-range-min");
+var hueMaxInput = document.querySelector("input#input-hue-range-max");
+function getRulesetFunc() {
+    switch (rulesetSelector === null || rulesetSelector === void 0 ? void 0 : rulesetSelector.value) {
+        case "add":
+            return function (x, y) { return x + y; };
+        case "multiply":
+            return function (x, y) { return x * y; };
+        case "multiply2":
+            return function (x, y) { return x * y * (-1); };
+        default:
+            console.warn("Invalid ruleset");
+            return function (x, y) { return 0; };
+    }
+}
+var Grid = /** @class */ (function () {
+    function Grid() {
+    }
+    Grid.getRows = function () {
+        return this.grid.length;
+    };
+    Grid.getColumns = function (oddRow) {
+        return this.grid[0].length - ((oddRow) ? 1 : 0);
+    };
+    Grid.getColumnsFromRowNumber = function (rowNumber) {
+        return this.getColumns((rowNumber % 2 == 1) ? true : false);
+    };
+    Grid.outOfBounds = function (coords) {
+        return coords.row < 0 || coords.row > this.getRows() - 1 || coords.column < 0 || coords.column > this.getColumnsFromRowNumber(coords.row) - 1;
+    };
+    Grid.getCellValue = function (coords) {
+        if (this.outOfBounds(coords)) {
+            return 0;
+        }
+        return this.grid[coords.row][coords.column];
+    };
+    Grid.setCellValue = function (coords, value) {
+        if (this.outOfBounds(coords)) {
+            return;
+        }
+        this.grid[coords.row][coords.column] = value;
+    };
+    /**
+     * fill the internal grid with zeros
+     * @param columns the number of cells in (2n)th rows (rows with an even index, like the topmost row).
+     * In (2n-1)th rows (odd index), the number of cells is columns-1
+    */
+    Grid.generateGrid = function (columns, rows) {
+        this.grid = new Array(rows);
+        //console.log("rows amount: " + this.grid.length)
+        for (var r = 0; r < rows; r++) {
+            // create alternating row lengths
+            var rowLength = void 0;
+            if (r % 2 == 0) {
+                rowLength = columns;
+            }
+            else {
+                rowLength = columns - 1;
+            }
+            this.grid[r] = new Array(rowLength);
+            //console.log("columns in row " + r + ": " + this.grid[r].length)
+            for (var c = 0; c < rowLength; c++) {
+                this.setCellValue(new Coordinates(c, r), 0);
             }
         }
-        return null;
+    };
+    Grid.calculate = function (rulesetFunction) {
+        console.log("Running calculation...");
+        for (var r = 1; r < this.getRows(); r++) {
+            for (var c = 0; c < this.getColumnsFromRowNumber(r); c++) {
+                var valL = this.getCellValue(new Coordinates(c, r).getCoordsUpLeft());
+                var valR = this.getCellValue(new Coordinates(c, r).getCoordsUpRight());
+                var res = rulesetFunction()(valL, valR);
+                this.setCellValue(new Coordinates(c, r), res);
+                //console.log(`set internal value at [${c}, ${r}] to: ` + res)
+            }
+        }
+    };
+    Grid.clearValues = function () {
+        for (var r = 0; r < this.getRows(); r++) {
+            for (var c = 0; c < this.getColumnsFromRowNumber(r); c++) {
+                this.grid[r][c] = 0;
+            }
+        }
+    };
+    Grid.consoleLogGrid = function () {
+        var res = "Grid:\n";
+        this.grid.forEach(function (row_) {
+            row_.forEach(function (col_) {
+                res += col_.toString() + ", ";
+            });
+            res += "\n";
+        });
+        console.log(res);
+    };
+    return Grid;
+}());
+var Coordinates = /** @class */ (function () {
+    function Coordinates(column_, row_) {
+        this.column = column_;
+        this.row = row_;
     }
-    else {
-        return null;
-    }
-}
-function getCellUpLeft(col, row) {
-    if (row % 2) {
-        // odd row number (row with margin)
-        return getCell(col, row - 1);
-    }
-    else {
-        // even row number (row without margin)
-        return getCell(col - 1, row - 1);
-    }
-}
-function getCellUpRight(col, row) {
-    if (row % 2) {
-        // odd row number (row with margin)
-        return getCell(col + 1, row - 1);
-    }
-    else {
-        // even row number (row without margin)
-        return getCell(col, row - 1);
-    }
-}
-//#endregion
-//#region simple grid operations
-function generateGrid(col, row) {
+    Coordinates.prototype.getCoordsUpLeft = function () {
+        if (this.row % 2) {
+            // odd row number (row with margin)
+            return new Coordinates(this.column, this.row - 1);
+        }
+        else {
+            // even row number (row without margin)
+            return new Coordinates(this.column - 1, this.row - 1);
+        }
+    };
+    Coordinates.prototype.getCoordsUpRight = function () {
+        if (this.row % 2) {
+            // odd row number (row with margin)
+            return new Coordinates(this.column + 1, this.row - 1);
+        }
+        else {
+            // even row number (row without margin)
+            return new Coordinates(this.column, this.row - 1);
+        }
+    };
+    Coordinates.prototype.isEqual = function (c) {
+        return (this.column == c.column && this.row == c.row);
+    };
+    return Coordinates;
+}());
+function updateDisplay() {
     removeGrid();
-    for (var r = 0; r < row; r++) {
+    console.log("Generating display... size: ".concat(Grid.getColumns(false), "x").concat(Grid.getRows()));
+    for (var r = 0; r < Grid.getRows(); r++) {
         var rowDiv = document.createElement("div");
         if (r % 2) {
             rowDiv.style.setProperty("margin-left", "35px");
         }
-        // create alternating row lengths
-        var rowLength = void 0;
-        if (r % 2 == 0) {
-            rowLength = col + 1;
-        }
-        else {
-            rowLength = col;
-        }
-        for (var c = 0; c < rowLength; c++) {
+        for (var c = 0; c < Grid.getColumnsFromRowNumber(r); c++) {
             var cell = document.createElement("input");
             if (r == 0) {
+                // special instructions for creating the first row
                 cell.disabled = false;
                 cell.style.border = "1px solid aliceblue";
             }
@@ -77,42 +154,48 @@ function generateGrid(col, row) {
             cell.dataset.row = r.toString();
             cell.title = "column: ".concat(c, ", row: ").concat(r);
             cell.type = "text";
-            cell.value = "0";
+            cell.value = Grid.getCellValue(new Coordinates(c, r)).toString();
             rowDiv.appendChild(cell);
         }
         rowDiv.style.setProperty("white-space", "nowrap");
         rowDiv.id = "r".concat(r);
-        if (grid != null)
-            grid.appendChild(rowDiv);
+        if (gridDisplay != null)
+            gridDisplay.appendChild(rowDiv);
     }
 }
 function removeGrid() {
-    if (grid != null)
-        grid.innerHTML = "";
+    console.log("Removing display...");
+    if (gridDisplay != null)
+        gridDisplay.innerHTML = "";
 }
-function clearGrid() {
-    grid === null || grid === void 0 ? void 0 : grid.querySelectorAll("input").forEach(function (cell) {
-        cell.value = "0";
-        cell.style.backgroundColor = "hsl(240, 20%, 15%)";
+function readUserInputs() {
+    console.log("Reading user inputs...");
+    gridDisplay === null || gridDisplay === void 0 ? void 0 : gridDisplay.querySelectorAll("input").forEach(function (cell) {
+        if (cell.dataset.row == "0") {
+            var col = cell.dataset.col;
+            if (col != null) {
+                Grid.setCellValue(new Coordinates(parseInt(col), 0), parseFloat(cell.value));
+                //console.log(`x:${col} set to: ${parseFloat(cell.value)}`)
+            }
+        }
     });
 }
-//#endregion
-// map function to turn a wide range of values into a small range of colors
+// map function to turn a wide range of values into a small range of colors (lerp)
 function mapValue(value, minValue, maxValue, minOutput, maxOutput) {
     return minOutput + (maxOutput - minOutput) * (value - minValue) / (maxValue - minValue);
 }
-function recalculateColors() {
+function colorCells() {
     if (!(colorsInput === null || colorsInput === void 0 ? void 0 : colorsInput.checked)) {
-        grid === null || grid === void 0 ? void 0 : grid.querySelectorAll("input").forEach(function (cell) {
+        gridDisplay === null || gridDisplay === void 0 ? void 0 : gridDisplay.querySelectorAll("input").forEach(function (cell) {
             cell.style.backgroundColor = "hsl(240, 20%, 15%)";
         });
         return;
     }
-    var hueMin_ = hueMin === null || hueMin === void 0 ? void 0 : hueMin.value;
-    var hueMax_ = hueMax === null || hueMax === void 0 ? void 0 : hueMax.value;
+    var hueMin_ = hueMinInput === null || hueMinInput === void 0 ? void 0 : hueMinInput.value;
+    var hueMax_ = hueMaxInput === null || hueMaxInput === void 0 ? void 0 : hueMaxInput.value;
     var max = 0;
     var min = 0;
-    var cells = grid === null || grid === void 0 ? void 0 : grid.querySelectorAll("input");
+    var cells = gridDisplay === null || gridDisplay === void 0 ? void 0 : gridDisplay.querySelectorAll("input");
     if (cells == null)
         return;
     for (var i = 0; i < (cells === null || cells === void 0 ? void 0 : cells.length); i++) {
@@ -143,69 +226,21 @@ function recalculateColors() {
         var hue = mapValue(loggedValue, Math.log10(1 / 1000), Math.log10(1000), hueMin_, hueMax_);
         hue = Math.round(hue);
         cell.style.backgroundColor = "hsl(".concat(hue, ", 80%, 30%)");
-        console.log("setting hue value to: ".concat(hue));
+        //console.log(`setting hue value to: ${hue}`);
         if (value == 0) {
             cell.style.backgroundColor = "hsl(".concat(hue, ", 80%, 20%)");
         }
     }
 }
-function getRulesetFunc() {
-    switch (ruleset === null || ruleset === void 0 ? void 0 : ruleset.value) {
-        case "add":
-            return function (x, y) { return x + y; };
-        case "multiply":
-            return function (x, y) { return x * y; };
-        case "multiply2":
-            return function (x, y) { return x * y * (-1); };
-        default:
-            console.warn("Invalid ruleset");
-            return function (x, y) { return 0; };
-    }
+function clearGrid() {
+    Grid.clearValues();
+    updateDisplay();
 }
-function recalculate() {
-    grid === null || grid === void 0 ? void 0 : grid.querySelectorAll("input").forEach(function (cell) {
-        var _a, _b;
-        //console.log(`calculating cell at ${cell.getAttribute("data-row")}, ${cell.getAttribute("data-col")}`)
-        if (cell.hasAttribute("data-row") && cell.hasAttribute("data-col")) {
-            // get cells above on the left and right
-            var cellRow = cell.getAttribute("data-row");
-            var cellCol = cell.getAttribute("data-col");
-            var cellRowN = void 0, cellColN = void 0; // cell coordinates as numbers
-            if (cellCol != null) {
-                cellColN = parseInt(cellCol);
-            }
-            if (cellRow != null) {
-                cellRowN = parseInt(cellRow);
-            }
-            var valL = (_a = getCellUpLeft(cellColN, cellRowN)) === null || _a === void 0 ? void 0 : _a.value;
-            var valR = (_b = getCellUpRight(cellColN, cellRowN)) === null || _b === void 0 ? void 0 : _b.value;
-            if (valL != null && valR != null) {
-                cell.value = getRulesetFunc()(parseFloat(valL), parseFloat(valR)).toString();
-            }
-        }
-    });
-}
-refreshButton === null || refreshButton === void 0 ? void 0 : refreshButton.addEventListener("click", function () {
-    if (currentGridSize.col != (columnInput === null || columnInput === void 0 ? void 0 : columnInput.valueAsNumber) || currentGridSize.row != (rowInput === null || rowInput === void 0 ? void 0 : rowInput.valueAsNumber)) {
-        if ((columnInput === null || columnInput === void 0 ? void 0 : columnInput.valueAsNumber) != undefined && (rowInput === null || rowInput === void 0 ? void 0 : rowInput.valueAsNumber) != undefined) {
-            generateGrid(columnInput === null || columnInput === void 0 ? void 0 : columnInput.valueAsNumber, rowInput === null || rowInput === void 0 ? void 0 : rowInput.valueAsNumber);
-        }
-    }
-    recalculate();
-    recalculateColors();
-    if (columnInput != null && rowInput != null) {
-        currentGridSize.col = columnInput.valueAsNumber;
-        currentGridSize.row = rowInput.valueAsNumber;
-    }
-});
 clearValuesButton === null || clearValuesButton === void 0 ? void 0 : clearValuesButton.addEventListener("click", function () {
     clearGrid();
 });
 colorsInput === null || colorsInput === void 0 ? void 0 : colorsInput.addEventListener("click", function () {
-    recalculateColors();
-});
-document.addEventListener("DOMContentLoaded", function () {
-    refreshButton === null || refreshButton === void 0 ? void 0 : refreshButton.click();
+    colorCells();
 });
 document.addEventListener("keydown", function (key) {
     if (key.key == "Escape") {
@@ -217,7 +252,6 @@ document.addEventListener("keydown", function (key) {
         refreshButton.style.backgroundColor = "hsl(93, 100%, 20%)";
     }
 });
-// todo fix case when alt tabbing
 document.addEventListener("keyup", function (key) {
     if (key.key == "Escape") {
         clearValuesButton.style.backgroundColor = "hsl(5, 100%, 75%)";
@@ -225,4 +259,49 @@ document.addEventListener("keyup", function (key) {
     if (key.key == "Enter") {
         refreshButton.style.backgroundColor = "hsl(93, 100%, 75%)";
     }
+});
+function getUserInput_GridSize() {
+    var columns = columnInput === null || columnInput === void 0 ? void 0 : columnInput.valueAsNumber;
+    var rows = rowInput === null || rowInput === void 0 ? void 0 : rowInput.valueAsNumber;
+    if (columns != null && rows != null) {
+        return new Coordinates(columns, rows);
+    }
+    else {
+        // this will never be returned, unless the grid size input fields dont exist for some reason
+        return new Coordinates(-1, -1);
+    }
+}
+var oldGridSize;
+/**
+ * makes a new internal grid and updates the display
+ */
+function generateNewGrid() {
+    var size = getUserInput_GridSize();
+    oldGridSize = size;
+    console.log("generating a ".concat(size.column, "x").concat(size.row, " grid"));
+    Grid.generateGrid(size.column, size.row);
+    console.log("grid has ".concat(Grid.getRows(), " rows"));
+    updateDisplay();
+}
+function initGrid() {
+    generateNewGrid();
+}
+function refresh() {
+    // if columns/rows amount changed, generate a new empty grid
+    if (!(oldGridSize.isEqual(getUserInput_GridSize()))) {
+        console.log("grid size changed, from ".concat(oldGridSize.column, "x").concat(oldGridSize.row, " \n            to ").concat(getUserInput_GridSize().column, "x").concat(getUserInput_GridSize().row));
+        initGrid();
+        console.log("generated a grid, size ".concat(Grid.getColumns(false), "x").concat(Grid.getRows()));
+    }
+    readUserInputs();
+    Grid.calculate(getRulesetFunc);
+    console.log("finished calculating");
+    updateDisplay();
+    colorCells();
+}
+document.addEventListener("DOMContentLoaded", function () {
+    initGrid();
+});
+refreshButton === null || refreshButton === void 0 ? void 0 : refreshButton.addEventListener("click", function () {
+    refresh();
 });
