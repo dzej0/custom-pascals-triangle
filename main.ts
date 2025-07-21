@@ -2,6 +2,8 @@ declare interface Math {
     log10(x: number): number;
 }
 
+const defaultCellColor : string = "hsl(240, 20%, 15%)";
+
 let gridDisplay: HTMLDivElement | null = document.querySelector("div#grid")
 let refreshButton: HTMLButtonElement | null = document.querySelector("button#refresh-button")
 let clearValuesButton: HTMLButtonElement | null = document.querySelector("button#clear-button")
@@ -19,17 +21,22 @@ let hueMaxInput: HTMLInputElement | null = document.querySelector("input#input-h
 function getRulesetFunc() : Function {
     switch (rulesetSelector?.value) {
         case "add":
-            return (x: number,y: number) => x+y
+            return (l: number,r: number) => l+r
         case "multiply":
-            return (x: number,y: number) => x*y
+            return (l: number,r: number) => l*r
         case "multiply2":
-            return (x: number,y: number) => x*y*(-1)
+            return (l: number,r: number) => l*r*(-1)
+        case "subtractLR":
+            return (l: number,r: number) => l-r
+        case "subtractRL":
+            return (l: number,r: number) => r-l
         default:
             console.warn("Invalid ruleset")
-            return (x: number,y: number) => 0
+            return (l: number,r: number) => 0
     }
 }
 
+// entirely static class
 class Grid {
     public static grid: number[][];
 
@@ -169,7 +176,7 @@ function updateDisplay() : void {
         for (let c = 0; c < Grid.getColumnsFromRowNumber(r); c++) { 
             let cell = document.createElement("input")
             if (r==0) {
-                // special instructions for creating the first row
+                // special instructions for creating the first row, where the user can type in values
                 cell.disabled = false
                 cell.style.border = "1px solid aliceblue"
             } else {
@@ -216,7 +223,7 @@ function mapValue(value, minValue, maxValue, minOutput, maxOutput) {
 function colorCells() {
     if (!colorsInput?.checked) {
         gridDisplay?.querySelectorAll("input").forEach((cell) => {
-            cell.style.backgroundColor = "hsl(240, 20%, 15%)"
+            cell.style.backgroundColor = defaultCellColor
         })
         return;
     }

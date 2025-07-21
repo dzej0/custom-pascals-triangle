@@ -1,3 +1,4 @@
+var defaultCellColor = "hsl(240, 20%, 15%)";
 var gridDisplay = document.querySelector("div#grid");
 var refreshButton = document.querySelector("button#refresh-button");
 var clearValuesButton = document.querySelector("button#clear-button");
@@ -10,16 +11,21 @@ var hueMaxInput = document.querySelector("input#input-hue-range-max");
 function getRulesetFunc() {
     switch (rulesetSelector === null || rulesetSelector === void 0 ? void 0 : rulesetSelector.value) {
         case "add":
-            return function (x, y) { return x + y; };
+            return function (l, r) { return l + r; };
         case "multiply":
-            return function (x, y) { return x * y; };
+            return function (l, r) { return l * r; };
         case "multiply2":
-            return function (x, y) { return x * y * (-1); };
+            return function (l, r) { return l * r * (-1); };
+        case "subtractLR":
+            return function (l, r) { return l - r; };
+        case "subtractRL":
+            return function (l, r) { return r - l; };
         default:
             console.warn("Invalid ruleset");
-            return function (x, y) { return 0; };
+            return function (l, r) { return 0; };
     }
 }
+// entirely static class
 var Grid = /** @class */ (function () {
     function Grid() {
     }
@@ -143,7 +149,7 @@ function updateDisplay() {
         for (var c = 0; c < Grid.getColumnsFromRowNumber(r); c++) {
             var cell = document.createElement("input");
             if (r == 0) {
-                // special instructions for creating the first row
+                // special instructions for creating the first row, where the user can type in values
                 cell.disabled = false;
                 cell.style.border = "1px solid aliceblue";
             }
@@ -187,7 +193,7 @@ function mapValue(value, minValue, maxValue, minOutput, maxOutput) {
 function colorCells() {
     if (!(colorsInput === null || colorsInput === void 0 ? void 0 : colorsInput.checked)) {
         gridDisplay === null || gridDisplay === void 0 ? void 0 : gridDisplay.querySelectorAll("input").forEach(function (cell) {
-            cell.style.backgroundColor = "hsl(240, 20%, 15%)";
+            cell.style.backgroundColor = defaultCellColor;
         });
         return;
     }
